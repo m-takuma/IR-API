@@ -1,0 +1,10 @@
+﻿id,code,name_jp
+-1,Error,エラー
+1,CurrentYearInstant,当年度:時点
+2,CurrentYearDuration,当年度:期間
+3,CurrentYearInstant_NonConsolidatedMember,当年度:時点
+4,CurrentYearDuration_NonConsolidatedMember,当年度:期間
+5,CurrentQuarterInstant,当四半期:会計期間
+6,CurrentYTDDuration,当四半期:累計期間
+7,CurrentQuarterInstant_NonConsolidatedMember,当四半期:会計期間
+8,CurrentYTDDuration_NonConsolidatedMember,当四半期:累計期間

@@ -1,0 +1,5 @@
+﻿id,code,name_jp
+1,jppfs_cor:BalanceSheetLineItems,貸借対照表
+2,jppfs_cor:StatementOfIncomeLineItems,損益（及び包括利益）計算書
+3,jppfs_cor:StatementOfComprehensiveIncomeLineItems,包括利益計算書
+4,jppfs_cor:StatementOfCashFlowsLineItems,キャッシュ・フロー計算書
