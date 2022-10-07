@@ -1,3 +1,4 @@
+import datetime
 from typing import List, Optional
 from pydantic import BaseModel
 
@@ -21,3 +22,21 @@ class Results(BaseModel):
 class GetCompanyResponse(BaseModel):
     metadata: MetaData
     results: List[Results]
+
+
+class DocumentResult(BaseModel):
+    id: int
+    document_uid: str
+    current_fiscalyear_startdate: datetime.date
+    current_fiscalyear_enddate: datetime.date
+    current_period_enddate: datetime.date
+    is_consolidated: bool
+    document_type: str
+    company_id: int
+    accounting_standard_id: int
+    dei_industry_code_id: int
+    period_type_id: int
+
+
+class DocumentResponse(BaseModel):
+    results: List[DocumentResult]

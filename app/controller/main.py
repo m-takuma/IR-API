@@ -1,8 +1,9 @@
 from typing import Union
 import psycopg2
 import psycopg2.extras
-from model.ResponseModel import GetCompanyResponse as GetCompanyResponse
+from model.ResponseModel import DocumentResponse, GetCompanyResponse
 from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 import model.Error as Error
 import os
@@ -19,11 +20,6 @@ connecter = psycopg2.connect(
         dbname="api_dev"
     )
 )
-
-
-@app.get("/")
-def testget():
-    return JSONResponse(status_code=200, content="aa")
 
 
 @app.get("/company", response_model=GetCompanyResponse)
@@ -61,6 +57,7 @@ def select_company(
     })
 
 
+'''
 @app.post("/company")
 async def insert_company(
         jcn: str,
@@ -70,6 +67,15 @@ async def insert_company(
         sec_code: Union[str, None] = None
         ):
     return ""
+'''
+
+
+@app.get("/document", response_model=DocumentResponse)
+def select_document(company_id: int, quarter: bool):
+    result = find_documents(connecter, company_id, quarter)
+    return JSONResponse(status_code=200, content={
+        "results": jsonable_encoder(result)
+    })
 
 
 def companeis_find(connecter, q, type, maxResults):
@@ -99,6 +105,34 @@ def companeis_find(connecter, q, type, maxResults):
 
 def company_insert(connecter, jcn, edinet_code, name_jp, name_eng, sec_code):
     pass
+
+
+def find_documents(connecter, company_id, quarter):
+    with connecter.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+        try:
+            if quarter:
+                sql_q = "SELECT * FROM fin_documents \
+                    WHERE company_id = :company_id \
+                        ORDER BY current_period_enddate ASC ;"\
+                        .replace(':company_id', '%(company_id)s')
+            else:
+                sql_q = "SELECT * FROM fin_documents \
+                        WHERE company_id = :company_id AND \
+                        period_type_id = 1 \
+                        ORDER BY current_period_enddate ASC ;"\
+                        .replace(':company_id', '%(company_id)s')
+            cursor.execute(
+                sql_q % {
+                    'company_id': company_id,
+                }
+            )
+            results = cursor.fetchall()
+            dict_result = []
+            for row in results:
+                dict_result.append(dict(row))
+            return dict_result
+        except Exception:
+            raise Error.ParamException
 
 
 @app.exception_handler(Error.ParamException)
