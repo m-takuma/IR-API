@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 class CompanySelectType(Enum):
@@ -7,3 +7,10 @@ class CompanySelectType(Enum):
     sec_code = "sec_code"
     name_jp = "name_jp"
     name_eng = "name_eng"
+
+
+class FinDataDimensionType(IntEnum):
+    貸借対照表 = 1
+    損益計算書 = 2
+    包括利益計算書 = 3
+    キャッシュフロー計算書 = 4
