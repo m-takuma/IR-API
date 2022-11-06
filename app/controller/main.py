@@ -1,12 +1,14 @@
 from typing import Union
 import psycopg2
 import psycopg2.extras
-from model.ResponseModel import GetCompanyResponse as GetCompanyResponse
+import os
+from model.ResponseModel import DocumentResponse, FetchFindataResponse, GetCompanyResponse, GetCompanyResponse_V0  # NOQA: E501
 from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 import model.Error as Error
-import os
-from model.PropsModel import CompanySelectType as CompanySelectType
+from model.PropsModel import CompanySelectType as CompanySelectType, FinDataDimensionType  # NOQA: E501
+from .dbManeger import companeis_find, company_find, fin_data_find, find_documents  # NOQA: E501
 app = FastAPI()
 
 connecter = psycopg2.connect(
@@ -19,11 +21,6 @@ connecter = psycopg2.connect(
         dbname="api_dev"
     )
 )
-
-
-@app.get("/")
-def testget():
-    return JSONResponse(status_code=200, content="aa")
 
 
 @app.get("/company", response_model=GetCompanyResponse)
@@ -61,44 +58,58 @@ def select_company(
     })
 
 
-@app.post("/company")
-async def insert_company(
-        jcn: str,
-        edinet_code: str,
-        name_jp: str,
-        name_eng: str,
-        sec_code: Union[str, None] = None
+@app.get("/api/v0/company", response_model=GetCompanyResponse_V0)
+def fetch_company(
+        q: str,
+        type: CompanySelectType,
+        maxResults: Union[int, None] = 100
         ):
-    return ""
-
-
-def companeis_find(connecter, q, type, maxResults):
-    with connecter.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
-        try:
-            sql_q = "SELECT ROW_NUMBER() OVER(ORDER BY :type ASC) num, \
-                jcn, edinet_code, sec_code, name_jp, name_eng \
-                FROM companies WHERE :type LIKE ':q' LIMIT :maxResults;"\
-                    .replace(':type', '%(type)s')\
-                    .replace(':q', '%(q)s')\
-                    .replace(':maxResults', '%(maxResults)s')
-            cursor.execute(
-                sql_q % {
-                    'type': type,
-                    'q': q,
-                    'maxResults': maxResults
-                    }
+    if (maxResults) <= 0 or int(maxResults) > 500:
+        raise Error.ParamException
+    result = []
+    match type.value:
+        case CompanySelectType.jcn.value | CompanySelectType.edinet_code.value:
+            result = company_find(connecter, f'{q}', type.value, maxResults)
+        case (
+                CompanySelectType.sec_code.value |
+                CompanySelectType.name_jp.value |
+                CompanySelectType.name_eng.value
+                ):
+            result = company_find(
+                connecter,
+                f'%{q}%', type.value, maxResults
                 )
-            results = cursor.fetchall()
-            dict_result = []
-            for row in results:
-                dict_result.append(dict(row))
-            return dict_result
-        except Exception:
+        case _:
             raise Error.ParamException
+    return JSONResponse(status_code=200, content={
+        "metadata": {
+            "count": len(result),
+            "q": q,
+            "type": type.value,
+            "maxResults": maxResults
+        },
+        "results":
+            result
+    })
 
 
-def company_insert(connecter, jcn, edinet_code, name_jp, name_eng, sec_code):
-    pass
+@app.get("/api/v0/document", response_model=DocumentResponse)
+def fetch_document(company_id: int, quarter: bool):
+    result = find_documents(connecter, company_id, quarter)
+    return JSONResponse(status_code=200, content={
+        "results": jsonable_encoder(result)
+    })
+
+
+@app.get("/api/v0/fin_data", response_model=FetchFindataResponse)
+def fetch_fin_data(
+        document_id: int,
+        dimension: Union[FinDataDimensionType, None] = None):
+    dimension = dimension.value if dimension is not None else None
+    result = fin_data_find(connecter, document_id, dimension)
+    return JSONResponse(status_code=200, content={
+        "results": jsonable_encoder(result)
+    })
 
 
 @app.exception_handler(Error.ParamException)
