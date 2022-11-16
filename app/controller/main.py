@@ -5,7 +5,7 @@ import os
 from model.ResponseModel import DocumentResponse, FetchFindataResponse, GetCompanyResponse, GetCompanyResponse_V0  # NOQA: E501
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import model.Error as Error
 from model.PropsModel import CompanySelectType as CompanySelectType, FinDataDimensionType  # NOQA: E501
 from .dbManeger import companeis_find, company_find, fin_data_find, find_documents  # NOQA: E501
@@ -110,6 +110,14 @@ def fetch_fin_data(
     return JSONResponse(status_code=200, content={
         "results": jsonable_encoder(result)
     })
+
+
+@app.get("/api/v0/app_versions")
+def get_app_versions():
+    def jsonfile():
+        with open("./res_files/app_versions.json", mode="rb") as jsonfile:
+            yield from jsonfile
+    return StreamingResponse(jsonfile(), media_type="application/json")
 
 
 @app.exception_handler(Error.ParamException)
